@@ -194,6 +194,7 @@ using StringResponse = http::response<http::string_body>;
 struct ContentType {
     ContentType() = delete;
     constexpr static std::string_view TEXT_HTML = "text/html"sv;
+    constexpr static std::string_view JSON = "application/json"sv;
     // При необходимости внутрь ContentType можно добавить и другие типы контента
 };
 

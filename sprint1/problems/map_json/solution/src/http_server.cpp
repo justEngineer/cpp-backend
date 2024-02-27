@@ -12,18 +12,12 @@ void ReportError(beast::error_code ec, std::string_view operation) {
 StringResponse OnRequest(StringRequest&& request) {
     StringResponse response;
     std::string body;
-    if (request.method() == http::verb::get || request.method() == http::verb::head) {
-        auto target = request.target();
-        if (request.method() == http::verb::get)
-        {
-            auto pos = target.find_last_of('/');
-            body = "Hello, ";
-            if (pos != std::string::npos) {
-                body.append(target.substr(pos + 1));
-            }
-        }
-        else {
-            body.clear();
+    if (request.method() == http::verb::get) {
+        auto url = request.target();
+        auto pos = url.find_last_of('/');
+        body = "Hello, ";
+        if (pos != std::string::npos) {
+            body.append(url.substr(pos + 1));
         }
         // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
         response = MakeStringResponse(http::status::ok, body, request.version(), request.keep_alive());

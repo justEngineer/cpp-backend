@@ -34,7 +34,7 @@ void RunWorkers(unsigned n, const Fn& fn) {
         workers.emplace_back(fn);
     }
     fn();
-} 
+}
 // Структура ContentType задаёт область видимости для констант,
 // задающий значения HTTP-заголовка Content-Type
 struct ContentType {
@@ -62,7 +62,7 @@ StringResponse HandleRequest(StringRequest&& req) {
 
     // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
     return text_response(http::status::ok, "<strong>Hello</strong>"sv);
-} 
+}
 
 std::optional<StringRequest> ReadRequest(tcp::socket& socket, beast::flat_buffer& buffer) {
     beast::error_code ec;
@@ -78,7 +78,7 @@ std::optional<StringRequest> ReadRequest(tcp::socket& socket, beast::flat_buffer
         throw std::runtime_error("Failed to read request: "s.append(ec.message()));
     }
     return req;
-} 
+}
 
 void DumpRequest(const StringRequest& req) {
     std::cout << "Method:" << req.method_string() << ", Target:" << req.target() << std::endl;
@@ -86,7 +86,7 @@ void DumpRequest(const StringRequest& req) {
     for (const auto& header : req) {
         std::cout << "  "sv << header.name_string() << ": "sv << header.value() << std::endl;
     }
-} 
+}
 
 template <typename RequestHandler>
 void HandleConnection(tcp::socket& socket, RequestHandler&& handle_request) {

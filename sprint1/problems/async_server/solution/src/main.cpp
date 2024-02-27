@@ -1,5 +1,4 @@
 #include "sdk.h"
-//
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <mutex>
@@ -9,10 +8,12 @@
 #include "http_server.h"
 
 namespace {
+
 namespace net = boost::asio;
-using namespace std::literals;
 namespace sys = boost::system;
 namespace http = boost::beast::http;
+
+using namespace std::literals;
 
 // Запускает функцию fn на n потоках, включая текущий
 template <typename Fn>
@@ -27,68 +28,6 @@ void RunWorkers(unsigned n, const Fn& fn) {
     fn();
 }
 
-// Запрос, тело которого представлено в виде строки
-using StringRequest = http::request<http::string_body>;
-// Ответ, тело которого представлено в виде строки
-using StringResponse = http::response<http::string_body>;
-
-struct ContentType {
-    ContentType() = delete;
-    constexpr static std::string_view TEXT_HTML = "text/html"sv;
-    // При необходимости внутрь ContentType можно добавить и другие типы контента
-};
-
-// Создаёт StringResponse с заданными параметрами
-StringResponse MakeStringResponse(http::status status, std::string_view body, unsigned http_version, bool keep_alive,
-                                  std::string_view content_type = ContentType::TEXT_HTML) {
-    StringResponse response(status, http_version);
-    response.set(http::field::content_type, content_type);
-    response.body() = body;
-    response.content_length(body.size());
-    response.keep_alive(keep_alive);
-    return response;
-}
-
-StringResponse HandleRequest(StringRequest&& request) {
-    const auto text_response = [&request](http::status status, std::string_view text) {
-        return MakeStringResponse(status, text, request.version(), request.keep_alive());
-    };
-    StringResponse response;
-    std::string body;
-    if (request.method() == http::verb::get || request.method() == http::verb::head) {
-        auto target = request.target();
-        if (request.method() == http::verb::get)
-        {
-            auto pos = target.find_last_of('/');
-            body = "Hello, ";
-            if (pos != std::string::npos) {
-                body.append(target.substr(pos + 1));
-            }
-        }
-        else {
-            body.clear();
-        }
-        // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
-        response = text_response(http::status::ok, body);
-        // Добавляем заголовок Content-Type: text/html
-        response.set(http::field::content_type, "text/html"sv);
-        // Формируем заголовок Content-Length, сообщающий длину тела ответа
-        response.content_length(response.body().size());
-        // Формируем заголовок Connection в зависимости от значения заголовка в запросе
-        response.keep_alive(request.keep_alive());
-    } else {
-        response = text_response(http::status::method_not_allowed, "Invalid method"sv);
-        // Добавляем заголовок Content-Type: text/html
-        response.set(http::field::content_type, "text/html"sv);
-        response.set(http::field::allow, "GET, HEAD"sv);
-        // Формируем заголовок Content-Length, сообщающий длину тела ответа
-        response.content_length(response.body().size());
-        // Формируем заголовок Connection в зависимости от значения заголовка в запросе
-        response.keep_alive(request.keep_alive());
-    }
-    // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
-    return response;
-}
 
 }  // namespace
 
@@ -108,7 +47,7 @@ int main() {
     const auto address = net::ip::make_address("0.0.0.0");
     constexpr net::ip::port_type port = 8080;
     http_server::ServeHttp(ioc, {address, port},
-                           [](auto&& req, auto&& sender) { sender(HandleRequest(std::forward<decltype(req)>(req))); });
+                           [](auto&& req, auto&& sender) { sender(http_server::OnRequest(std::forward<decltype(req)>(req))); });
 
     // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
     std::cout << "Server has started..."sv << std::endl;
