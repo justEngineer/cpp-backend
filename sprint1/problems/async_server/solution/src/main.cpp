@@ -14,6 +14,19 @@ using namespace std::literals;
 namespace sys = boost::system;
 namespace http = boost::beast::http;
 
+// Запускает функцию fn на n потоках, включая текущий
+template <typename Fn>
+void RunWorkers(unsigned n, const Fn& fn) {
+    n = std::max(1u, n);
+    std::vector<std::jthread> workers;
+    workers.reserve(n - 1);
+    // Запускаем n-1 рабочих потоков, выполняющих функцию fn
+    while (--n) {
+        workers.emplace_back(fn);
+    }
+    fn();
+}
+
 // Запрос, тело которого представлено в виде строки
 using StringRequest = http::request<http::string_body>;
 // Ответ, тело которого представлено в виде строки
@@ -26,8 +39,7 @@ struct ContentType {
 };
 
 // Создаёт StringResponse с заданными параметрами
-StringResponse MakeStringResponse(http::status status, std::string_view body, unsigned http_version,
-                                  bool keep_alive,
+StringResponse MakeStringResponse(http::status status, std::string_view body, unsigned http_version, bool keep_alive,
                                   std::string_view content_type = ContentType::TEXT_HTML) {
     StringResponse response(status, http_version);
     response.set(http::field::content_type, content_type);
@@ -37,26 +49,45 @@ StringResponse MakeStringResponse(http::status status, std::string_view body, un
     return response;
 }
 
-StringResponse HandleRequest(StringRequest&& req) {
-    const auto text_response = [&req](http::status status, std::string_view text) {
-        return MakeStringResponse(status, text, req.version(), req.keep_alive());
+StringResponse HandleRequest(StringRequest&& request) {
+    const auto text_response = [&request](http::status status, std::string_view text) {
+        return MakeStringResponse(status, text, request.version(), request.keep_alive());
     };
-
-    // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
-    return text_response(http::status::ok, "<strong>Hello</strong>"sv);
-}
-
-// Запускает функцию fn на n потоках, включая текущий
-template <typename Fn>
-void RunWorkers(unsigned n, const Fn& fn) {
-    n = std::max(1u, n);
-    std::vector<std::jthread> workers;
-    workers.reserve(n - 1);
-    // Запускаем n-1 рабочих потоков, выполняющих функцию fn
-    while (--n) {
-        workers.emplace_back(fn);
+    StringResponse response;
+    std::string body;
+    if (request.method() == http::verb::get || request.method() == http::verb::head) {
+        auto target = request.target();
+        if (request.method() == http::verb::get)
+        {
+            auto pos = target.find_last_of('/');
+            body = "Hello, ";
+            if (pos != std::string::npos) {
+                body.append(target.substr(pos + 1));
+            }
+        }
+        else {
+            body.clear();
+        }
+        // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
+        response = text_response(http::status::ok, body);
+        // Добавляем заголовок Content-Type: text/html
+        response.set(http::field::content_type, "text/html"sv);
+        // Формируем заголовок Content-Length, сообщающий длину тела ответа
+        response.content_length(response.body().size());
+        // Формируем заголовок Connection в зависимости от значения заголовка в запросе
+        response.keep_alive(request.keep_alive());
+    } else {
+        response = text_response(http::status::method_not_allowed, "Invalid method"sv);
+        // Добавляем заголовок Content-Type: text/html
+        response.set(http::field::content_type, "text/html"sv);
+        response.set(http::field::allow, "GET, HEAD"sv);
+        // Формируем заголовок Content-Length, сообщающий длину тела ответа
+        response.content_length(response.body().size());
+        // Формируем заголовок Connection в зависимости от значения заголовка в запросе
+        response.keep_alive(request.keep_alive());
     }
-    fn();
+    // Здесь можно обработать запрос и сформировать ответ, но пока всегда отвечаем: Hello
+    return response;
 }
 
 }  // namespace
@@ -76,14 +107,11 @@ int main() {
 
     const auto address = net::ip::make_address("0.0.0.0");
     constexpr net::ip::port_type port = 8080;
-    http_server::ServeHttp(ioc, {address, port}, [](auto&& req, auto&& sender) {
-        sender(HandleRequest(std::forward<decltype(req)>(req)));
-    });
+    http_server::ServeHttp(ioc, {address, port},
+                           [](auto&& req, auto&& sender) { sender(HandleRequest(std::forward<decltype(req)>(req))); });
 
     // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
     std::cout << "Server has started..."sv << std::endl;
 
-    RunWorkers(num_threads, [&ioc] {
-        ioc.run();
-    });
+    RunWorkers(num_threads, [&ioc] { ioc.run(); });
 }
