@@ -15,17 +15,17 @@ namespace http = boost::beast::http;
 
 using namespace std::literals;
 
-// Запускает функцию fn на n потоках, включая текущий
+// Запускает функцию function на thread_num потоках, включая текущий
 template <typename Fn>
-void RunWorkers(unsigned n, const Fn& fn) {
-    n = std::max(1u, n);
+void RunWorkers(unsigned thread_num, const Fn& function) {
+    thread_num = std::max(1u, thread_num);
     std::vector<std::jthread> workers;
-    workers.reserve(n - 1);
-    // Запускаем n-1 рабочих потоков, выполняющих функцию fn
-    while (--n) {
-        workers.emplace_back(fn);
+    workers.reserve(thread_num - 1);
+    // Запускаем thread_num-1 рабочих потоков, выполняющих функцию function
+    while (--thread_num) {
+        workers.emplace_back(function);
     }
-    fn();
+    function();
 }
 
 
