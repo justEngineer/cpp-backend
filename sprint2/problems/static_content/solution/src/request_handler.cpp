@@ -90,7 +90,7 @@ http_server::HttpResponse RequestHandler::GetStaticFile(http_server::StringReque
         http::file_body::value_type file;
         if (sys::error_code ec; file.open(full_path_to_file.c_str(), beast::file_mode::read, ec), ec) {
             std::cerr << "Failed to open file "sv << full_path_to_file << std::endl;
-            auto body = json::serialize(json::value_from(model::ResponseError{"mapNotFound", "Map not found"}));
+            auto body = json::serialize(json::value_from(model::ResponseError{"fileNotFound", "Fail not found"}));
             return http_server::MakeStringResponse(http::status::not_found, std::move(body), req.version(),
                                                    req.keep_alive(), http_server::ContentType::TEXT_PLAIN);
         } else {
