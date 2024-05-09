@@ -4,7 +4,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <thread>
-
 #include "json_loader.h"
 #include "logger.h"
 #include "logging_request_handler.h"
@@ -59,8 +58,12 @@ int main(int argc, const char* argv[]) {
         });
 
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
-        http_handler::RequestHandler handler{game, static_files_dir_path};
-        http_handler::LoggingRequestHandler logging_handler(handler);
+        // strand для выполнения запросов к API
+        auto api_strand = net::make_strand(ioc);
+        // Создаём обработчик запросов в куче, управляемый shared_ptr
+        auto handler = std::make_shared<http_handler::RequestHandler>(api_strand, game, static_files_dir_path
+                                                                      /*прочие параметры, нужные RequestHandler*/);
+        http_handler::LoggingRequestHandler logging_handler(*handler);
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
@@ -74,6 +77,7 @@ int main(int argc, const char* argv[]) {
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] { ioc.run(); });
     } catch (const std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
         logger::LogServerIsShuttingDown(std::string(logger::message::SERVER_STARTED), EXIT_FAILURE, ex.what());
         return EXIT_FAILURE;
     }

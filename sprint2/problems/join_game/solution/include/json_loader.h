@@ -1,0 +1,12 @@
+#pragma once
+
+#include <filesystem>
+//#include "game.h"
+#include "request_handler.h"
+
+namespace json_loader {
+
+model::Game LoadGame(const std::filesystem::path& json_path);
+model::AddNewPlayerRequest ParseAddNewPlayerRequest(std::string str);
+
+}  // namespace json_loader
