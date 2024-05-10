@@ -1,0 +1,108 @@
+#pragma once
+#include "game.h"
+#include "http_server.h"
+#include "model.h"
+#define BOOST_BEAST_USE_STD_STRING_VIEW
+
+namespace http_handler {
+
+using namespace std::literals;
+namespace url {
+
+constexpr std::string_view SEPARATOR = "/"sv;
+constexpr std::string_view API = "/api/"sv;
+constexpr std::string_view GET_ALL_MAPS = "/api/v1/maps"sv;
+constexpr std::string_view GET_MAP_WITH_ID = "/api/v1/maps/"sv;
+constexpr std::string_view ADD_PLAYER = "/api/v1/game/join"sv;
+constexpr std::string_view GET_ALL_PLAYERS = "/api/v1/game/players"sv;
+constexpr std::string_view GET_STATE = "/api/v1/game/state"sv;
+constexpr std::string_view PLAYER_ACTION = "/api/v1/game/player/action"sv;
+
+}  // namespace url
+
+namespace beast = boost::beast;
+namespace http = beast::http;
+namespace fs = std::filesystem;
+namespace net = boost::asio;
+
+using namespace http_server;
+
+class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
+    using Strand = net::strand<net::io_context::executor_type>;
+
+   public:
+    explicit RequestHandler(Strand api_strand, model::Game& game, fs::path path_to_static_folder)
+        : game_{game}, path_to_static_folder_{std::move(path_to_static_folder)}, api_strand_{api_strand} {
+        using namespace std::literals;
+        supported_file_types[".htm"s] = ContentType::TEXT_HTML;
+        supported_file_types[".html"s] = ContentType::TEXT_HTML;
+        supported_file_types[".css"s] = ContentType::TEXT_CSS;
+        supported_file_types[".txt"s] = ContentType::TEXT_PLAIN;
+        supported_file_types[".js"s] = ContentType::TEXT_JS;
+        supported_file_types[".json"s] = ContentType::JSON;
+        supported_file_types[".xml"s] = ContentType::APP_XML;
+        supported_file_types[".png"s] = ContentType::IMG_PNG;
+        supported_file_types[".jpg"s] = ContentType::IMG_JPEG;
+        supported_file_types[".jpe"s] = ContentType::IMG_JPEG;
+        supported_file_types[".jpeg"s] = ContentType::IMG_JPEG;
+        supported_file_types[".gif"s] = ContentType::IMG_GIF;
+        supported_file_types[".bmp"s] = ContentType::IMG_BMP;
+        supported_file_types[".ico"s] = ContentType::IMG_ICON;
+        supported_file_types[".tiff"s] = ContentType::IMG_TIFF;
+        supported_file_types[".tif"s] = ContentType::IMG_TIFF;
+        supported_file_types[".svg"s] = ContentType::IMG_SVG;
+        supported_file_types[".svgz"s] = ContentType::IMG_SVG;
+        supported_file_types[".mp3"s] = ContentType::AUDIO_MPEG;
+    }
+
+    RequestHandler(const RequestHandler&) = delete;
+    RequestHandler& operator=(const RequestHandler&) = delete;
+    // точка входа в обработку http запроса
+    template <typename Body, typename Allocator, typename Send>
+    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
+        auto version = req.version();
+        auto keep_alive = req.keep_alive();
+        try {
+            if (req.target().starts_with(url::API)) {  // запрос API
+                auto handle = [self = shared_from_this(), send, req = std::forward<decltype(req)>(req), version,
+                               keep_alive] {
+                    try {
+                        assert(self->api_strand_.running_in_this_thread());
+                        return send(self->HandleApiRequest(req));
+                    } catch (...) {
+                        // send(self->ReportServerError("Internal error"sv, "Exception while handling request"sv,
+                        //                              std::move(req)));
+                    }
+                };
+                return net::dispatch(api_strand_, handle);
+            } else {  // запрос файла
+                HttpResponse response = HandleFileRequest(req);
+                // HttpResponse response = HandleFileRequest(std::forward<decltype(req)>(req));
+                std::visit([&](auto&& arg) { send(arg); }, response);
+            }
+        } catch (...) {
+            send(ReportServerError("Internal error"sv, "Exception while handling request"sv, req));
+        }
+    }
+
+   private:
+    StringResponse HandleApiRequest(const StringRequest& request);
+    StringResponse GetAllMaps(const StringRequest& req);
+    StringResponse GetMapByID(const StringRequest& req, const std::vector<std::string>& url);
+    HttpResponse HandleFileRequest(const StringRequest& req);
+    StringResponse ReportServerError(std::string_view code, std::string_view msg, const StringRequest& req,
+                                     http::status status = http::status::bad_request,
+                                     std::string_view allowed_method = {},
+                                     std::pair<http::field, std::string_view> keyValue = {});
+    StringResponse AddNewPlayer(const http_server::StringRequest& req);
+    StringResponse GetAllPlayers(const StringRequest& req);
+    StringResponse GetGameState(const StringRequest& req);
+    StringResponse ChangeGameState(const StringRequest& req);
+
+    model::Game& game_;
+    const fs::path path_to_static_folder_;
+    std::unordered_map<std::string, std::string> supported_file_types;
+    Strand api_strand_;
+};
+
+}  // namespace http_handler
