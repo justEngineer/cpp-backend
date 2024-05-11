@@ -228,10 +228,8 @@ class Dog {
     using Id = util::Tagged<std::uint32_t, Dog>;
     using Name = util::Tagged<std::string, Dog>;
 
-    Dog(Id id, Name name, Position position, double speed, Direction direction = Direction::NORTH) noexcept
-        : id_{std::move(id)}, name_{std::move(name)}, position_{position}, direction_{direction} {
-        //SetDirection(GetDirection(), speed);
-    }
+    Dog(Id id, Name name, Position position, Direction direction = Direction::NORTH) noexcept
+        : id_{std::move(id)}, name_{std::move(name)}, position_{position}, direction_{direction} {}
 
     const Id& GetId() const noexcept { return id_; }
     const Name& GetName() const noexcept { return name_; }
@@ -351,8 +349,8 @@ struct AddNewPlayerRequest {
 class Player {
    public:
     Player(uint64_t id, const std::string& name, const std::string& token, const uint64_t dog_id,
-           const std::string& dog_name, Position pos, double speed)
-        : id_(id), name_(name), token_(token), dog_(Dog::Id(dog_id), Dog::Name(dog_name), pos, speed) {}
+           const std::string& dog_name, Position pos)
+        : id_(id), name_(name), token_(token), dog_(Dog::Id(dog_id), Dog::Name(dog_name), pos) {}
     const uint64_t id_{0};
     const std::string name_;
     const std::string token_;
