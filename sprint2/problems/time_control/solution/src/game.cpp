@@ -1,23 +1,21 @@
 #include "game.h"
 #include <algorithm>
 #include <stdexcept>
-#include "game.h"
 #include "player_tokens.h"
 #include "request_handler.h"
-//#include "model.h"
 
 namespace model {
 
 using namespace std::literals;
 
-const Player& GameSession::AddPlayer(const std::string name) {
+const Player& GameSession::AddPlayer(const std::string name, double speed) {
     auto itFind =
         std::find_if(players_.begin(), players_.end(), [&name](const Player& player) { return player.name_ == name; });
     if (itFind != players_.end())
         return *itFind;
     PlayerTokens tk;
     auto token = tk.GetToken();
-    return players_.emplace_back(current_uid_++, name, token, current_uid_, name);
+    return players_.emplace_back(current_uid_++, name, token, current_uid_, name, map_.GetSpawnPoint(), speed);
 }
 
 bool GameSession::isTokenAlreadyExists(const std::string& token) {
@@ -47,37 +45,23 @@ void Game::AddMap(Map&& map) {
 }
 
 GameSession* Game::GetSession(const Map::Id& map_id) {
-    // В данной реализации одна карта (MapId) соответсвует одной сессии
-    // При необходимости можно будет переделать, чтобы на одной карте было несколько сессий.
-    // Для этого нужно будет добавить критерий "переполнения" сессии и создания новой, например, по количеству
-    // игроков в текущей найденной сессии
     if (auto it = map_id_to_session_index_.find(map_id); it != map_id_to_session_index_.end()) {
         return sessions_.at(it->second);
     } else {
-        // Если не нашли сессию для игрока, пробуем создать новую
-
-        //  Найдём карту, к которой хотим подключиться
         auto map = FindMap(map_id);
         if (!map) {
             return nullptr;
-            //throw std::invalid_argument("Map with id "s + *map_id + " isn`t exists"s);
         }
-
-        // Карта есть. Пробуем добавить новую сессию
         const size_t index = sessions_.size();
         if (auto [it, inserted] = map_id_to_session_index_.emplace(map_id, index); !inserted) {
-            // Сессия есть для карты с таким Id. Заново создавать нельзя!
-            throw std::invalid_argument("Session for map with id "s + *map_id + " already exists"s);
+            return nullptr;
         } else {
-            // Создаём новую сессию, привязанную к указанной карте
-            GameSession* new_session = new GameSession(*map->GetId());
+            GameSession* new_session = new GameSession(*map);
             try {
                 sessions_.emplace_back(new_session);
             } catch (...) {
-                // Не получилось. Откатываем изменения в map_id_to_map_index_
                 map_id_to_session_index_.erase(it);
                 delete new_session;
-                //throw;
                 return nullptr;
             }
         }
@@ -85,20 +69,23 @@ GameSession* Game::GetSession(const Map::Id& map_id) {
     }
 }
 
+void GameSession::ChangeTime(double deltaInSeconds) {
+    for (auto& player : players_) {
+        player.dog_.Move(deltaInSeconds, map_);
+    }
+}
+
 std::pair<std::string, const Player*> Game::AddPlayer(AddNewPlayerRequest req) {
-    // model::Dog::Name name_str(*name);
-    // if (!isValidName(name)) {
-    //     throw JoinGameError{JoinGameErrorReason::InvalidName};
-    // }
     if (!FindMap(model::Map::Id{req.map_id})) {
         return {"InvalidMap", nullptr};
     }
     if (auto session = GetSession(model::Map::Id{req.map_id})) {
-        //auto spawn_point = GetRandomPointOnMap();
         try {
-            //auto dog = session->AddDog(spawn_point, std::move(name_str));
-            //auto& player = players_.Add(/*dog,*/ *session);
-            auto& player = session->AddPlayer(req.name);
+            auto map_speed = session->GetMap().GetSpeed();
+            if (map_speed == 0.0) {
+                map_speed = defaultDogSpeed_;
+            }
+            auto& player = session->AddPlayer(req.name, map_speed);
             return {"", &player};
         } catch (std::invalid_argument err) {
             return {"InvalidName", nullptr};
@@ -109,7 +96,7 @@ std::pair<std::string, const Player*> Game::AddPlayer(AddNewPlayerRequest req) {
 
 const std::vector<Player>* Game::GetAllPlayersInSession(const std::string& token) {
     auto itFind = std::find_if(sessions_.begin(), sessions_.end(),
-                               [&token](GameSession* session) { return session->isTokenAlreadyExists(token) == true; });
+                               [&token](GameSession* session) { return session->isTokenAlreadyExists(token); });
     if (itFind == sessions_.end())
         return nullptr;
     auto players = (*itFind)->GetAllPlayers();
@@ -123,12 +110,26 @@ bool Game::FindAndMovePlayersDog(const std::string& token, std::string_view comm
     if (itFindSession == sessions_.end()) {
         return false;
     }
-    auto itFindPlayer =
-        std::find_if(players_.begin(), players_.end(), [&token](Player& player) { return player.token_ == token; });
-    if (itFindPlayer != players_.end()) {
+    auto& session = **itFindSession;
+    auto& players = *session.GetAllPlayers();
+    auto itFindPlayer = std::find_if(players.begin(), players.end(),
+                                     [&token](const model::Player& player) { return player.token_ == token; });
+    if (itFindPlayer == players.end()) {
         return false;
     }
-    return itFindPlayer->dog_.SetDirection(command);
+    auto& dog = const_cast<model::Dog&>(itFindPlayer->dog_);
+    auto map_speed = session.GetMap().GetSpeed();
+    if (map_speed == 0.0) {
+        map_speed = defaultDogSpeed_;
+    }
+    return dog.SetDirection(command, map_speed);
+}
+
+void Game::ChangeTime(uint64_t deltaInMilliseconds) {
+    double seconds = double(deltaInMilliseconds) / 1000.0;
+    for (auto& session : sessions_) {
+        session->ChangeTime(seconds);
+    }
 }
 
 }  // namespace model
