@@ -52,7 +52,8 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::string raw_input(std::istreambuf_iterator<char>(input_file_stream), {});
     auto obj = json::parse(raw_input).as_object();
     auto defaultDogSpeed_ = value_to<double>(obj.at(std::string(model::json_obj_game::DEFAULT_DOG_SPEED)));
-    model::Game game(defaultDogSpeed_);
+    auto loot_gen_cfg = value_to<model::LootGeneratorCfg>(obj.at({(model::json_obj_game::LOOT_GENERATOR_CFG)}));
+    model::Game game(defaultDogSpeed_, std::move(loot_gen_cfg));
     auto maps = value_to<std::vector<model::Map>>(obj.at({model::json_obj_game::MAPS}));
     for (auto& map : maps) {
         game.AddMap(std::move(map));

@@ -7,6 +7,11 @@ namespace model {
 namespace json_obj_game {
 constexpr static char MAPS[] = "maps";
 constexpr static char DEFAULT_DOG_SPEED[] = "defaultDogSpeed";
+constexpr static char LOOT_GENERATOR_CFG[] = "lootGeneratorConfig";
+namespace loot_generator_cfg {
+constexpr static char PERIOD[] = "period";
+constexpr static char PROBABILITY[] = "probability";
+}  // namespace loot_generator_cfg
 namespace map {
 constexpr static char ID[] = "id";
 constexpr static char NAME[] = "name";
@@ -14,6 +19,7 @@ constexpr static char ROADS[] = "roads";
 constexpr static char BUILDINGS[] = "buildings";
 constexpr static char OFFICES[] = "offices";
 constexpr static char DOG_SPEED[] = "dogSpeed";
+constexpr static char LOOT_TYPES[] = "lootTypes";
 namespace road {
 constexpr static char START_X[] = "x0";
 constexpr static char START_Y[] = "y0";
@@ -93,6 +99,9 @@ constexpr static char LIST_PLAYERS_NAME[] = "name";
 
 namespace json_get_state_response {
 constexpr static char PLAYERS_ARRAY[] = "players";
+constexpr static char ITEMS_ARRAY[] = "lostObjects";
+constexpr static char ITEM_TYPE[] = "type";
+constexpr static char ITEM_POSITION[] = "pos";
 }  // namespace json_get_state_response
 
 namespace json_dog {

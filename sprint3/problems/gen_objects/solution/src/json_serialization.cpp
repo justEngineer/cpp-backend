@@ -34,14 +34,28 @@ Office tag_invoke(json::value_to_tag<Office>, json::value const& jason_value) {
                    value_to<Dimension>(obj.at({json_obj_game::map::office::OFFSET_Y}))}};
 }
 
+LootGeneratorCfg tag_invoke(json::value_to_tag<LootGeneratorCfg>&, json::value const& jv) {
+    json::object const& obj = jv.as_object();
+    return LootGeneratorCfg{value_to<double>(obj.at({(json_obj_game::loot_generator_cfg::PERIOD)})),
+                            value_to<double>(obj.at({(json_obj_game::loot_generator_cfg::PROBABILITY)}))};
+}
+
+void tag_invoke(json::value_from_tag, json::value& jv, LootGeneratorCfg const& loot_cfg) {
+    json::object obj;
+    obj[json_obj_game::loot_generator_cfg::PERIOD] = loot_cfg.period_in_seconds_;
+    obj[json_obj_game::loot_generator_cfg::PROBABILITY] = loot_cfg.probability_;
+    jv.emplace_object() = obj;
+}
+
 Map tag_invoke(json::value_to_tag<Map>, json::value const& jason_value) {
     auto obj = jason_value.as_object();
-    double dogSpeed{0.0};
+    double dog_speed{0.0};
     if (auto it = obj.find(json_obj_game::map::DOG_SPEED); it != obj.end()) {
-        dogSpeed = value_to<double>(it->value());
+        dog_speed = value_to<double>(it->value());
     }
     Map map{Map::Id(value_to<std::string>(obj.at({json_obj_game::map::ID}))),
-            value_to<std::string>(obj.at({json_obj_game::map::NAME})), dogSpeed};
+            value_to<std::string>(obj.at({json_obj_game::map::NAME})), dog_speed,
+            obj.at(std::string(json_obj_game::map::LOOT_TYPES)).as_array()};
     auto roads = value_to<std::vector<Road>>(obj.at({json_obj_game::map::ROADS}));
     for (auto& road : roads) {
         map.AddRoad(std::move(road));
@@ -103,6 +117,7 @@ void tag_invoke(json::value_from_tag, json::value& jason_value, Map const& map) 
     object[json_obj_game::map::ROADS] = form_array(map.GetRoads());
     object[json_obj_game::map::BUILDINGS] = form_array(map.GetBuildings());
     object[json_obj_game::map::OFFICES] = form_array(map.GetOffices());
+    object[json_obj_game::map::LOOT_TYPES] = map.GetLootTypes();
     jason_value.emplace_object() = object;
 }
 
@@ -157,15 +172,31 @@ void tag_invoke(json::value_from_tag, json::value& jv, Dog const& dog) {
           {json_dog::DIRECTION, dog.GetDirection()}};
 }
 
+void tag_invoke(json::value_from_tag, json::value& jv, Item const& item) {
+    jv = {{json_get_state_response::ITEM_TYPE, json::value_from(item.type_)},
+          {json_get_state_response::ITEM_POSITION, json::value_from(item.position_)}};
+}
+
 void tag_invoke(boost::json::value_from_tag, boost::json::value& jv,
-                GetStateWrapper<const std::vector<Player>> const& wrapper) {
-    json::object object_players_array;
-    json::object object_player_info;
-    for (const auto& player_info : wrapper.players_) {
-        object_player_info[std::to_string(player_info.id_)] = json::value_from(player_info.dog_);
+                std::pair<const std::vector<Player>*, const std::vector<Item>*> const& wrapper) {
+    auto [players, items] = wrapper;
+    json::object object_result;
+    if (players) {
+        json::object object_player_info;
+        for (const auto& player_info : *players) {
+            object_player_info[std::to_string(player_info.id_)] = json::value_from(player_info.dog_);
+        }
+        object_result[json_get_state_response::PLAYERS_ARRAY] = object_player_info;
     }
-    object_players_array[json_get_state_response::PLAYERS_ARRAY] = object_player_info;
-    jv.emplace_object() = object_players_array;
+    if (items) {
+        json::object object_items_array;
+        json::object object_item_info;
+        for (const auto& item_info : *items) {
+            object_item_info[item_info.GetIdAsString()] = json::value_from(item_info);
+        }
+        object_result[json_get_state_response::ITEMS_ARRAY] = object_item_info;
+    }
+    jv.emplace_object() = object_result;
 }
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value& jv, EmptyObject const& /*dummy*/) {
