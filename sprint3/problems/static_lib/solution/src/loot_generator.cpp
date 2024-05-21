@@ -1,4 +1,4 @@
-#include "../include/loot_generator.h"
+#include "loot_generator.h"
 
 #include <algorithm>
 #include <cmath>

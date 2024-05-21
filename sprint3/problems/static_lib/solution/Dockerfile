@@ -11,9 +11,7 @@ RUN apt update && \
 
 COPY conanfile.txt /app/
 RUN mkdir /app/build && cd /app/build && \
-    conan profile new default --detect && \
-    conan profile update settings.compiler.libcxx=libstdc++11 default && \
-    conan install .. --build=missing
+    conan install .. --build=missing -s compiler.libcxx=libstdc++11
 
 COPY ./src /app/src
 COPY ./include /app/include

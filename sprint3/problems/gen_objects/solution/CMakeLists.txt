@@ -7,7 +7,8 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
 find_package(Boost 1.78.0 REQUIRED)
-#find_package(catch2 REQUIRED)
+#find_package(Catch2  REQUIRED)
+
 
 if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
@@ -34,12 +35,16 @@ target_include_directories(game_server PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/inclu
 target_link_libraries(game_server PRIVATE Threads::Threads CONAN_PKG::boost)
 
 
-#add_executable(game_server_test
+add_executable(game_server_test
 #	src/model.cpp
-#	src/loot_generator.cpp
-#	tests/loot_generator_tests.cpp
+	src/loot_generator.cpp
+	tests/loot_generator_tests.cpp
 #	tests/model_tests.cpp
-#)
+)
 
-#target_include_directories(game_server_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include" CONAN_PKG::boost CONAN_PKG::catch2)
-#target_link_libraries(game_server_test PRIVATE CONAN_PKG::boost CONAN_PKG::catch2)
+#target_include_directories(game_server_test PUBLIC CONAN_PKG::boost CONAN_PKG::catch2)
+target_link_libraries(game_server_test PRIVATE CONAN_PKG::boost CONAN_PKG::catch2)
+
+#add_test(
+#        NAME game_server_test
+#        COMMAND game_server_test)
