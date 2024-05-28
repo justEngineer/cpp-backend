@@ -27,6 +27,9 @@ RUN cd /app/build && \
 # ============ RUN ============ #
 FROM ubuntu:22.04 as run
 
+RUN apt update && \
+    apt install -y rsyslog 
+
 RUN groupadd -r alex && useradd -r -g alex alex
 USER alex
 
@@ -34,4 +37,7 @@ COPY --from=build /app/build/bin/game_server /app/
 COPY ./data /app/data
 COPY ./static /app/static
 
-ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/app/static"]
+RUN mkdir /tmp/volume/ && chmod 777 /tmp/volume
+
+#ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/app/static"]
+ENTRYPOINT ["/app/game_server", "--config-file", "/app/data/config.json", "--www-root", "/app/static", "--state-file", "/tmp/volume/state.save", "--save-state-period", "100"]
