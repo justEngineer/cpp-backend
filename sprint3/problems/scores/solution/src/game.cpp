@@ -117,9 +117,10 @@ void GameSession::GenerateItems(uint64_t deltaInMilliseconds) {
 
 void GameSession::ChangeTime(uint64_t deltaInMilliseconds) {
     dogs_collisions_.clear();
+    double deltaInSeconds = static_cast<double>(deltaInMilliseconds) / 1000.0;
     for (auto& player : players_) {
         auto prev_position = player.dog_.GetPosition();
-        auto current_position = player.dog_.Move(deltaInMilliseconds / 1000, map_);
+        auto current_position = player.dog_.Move(deltaInSeconds, map_);
         dogs_collisions_.push_back(
             {{prev_position.x, prev_position.y}, {current_position.x, current_position.y}, player.dog_.GetWidth()});
     }

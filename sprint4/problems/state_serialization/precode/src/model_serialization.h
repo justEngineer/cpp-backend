@@ -21,7 +21,7 @@ void serialize(Archive& ar, Vec2D& vec, [[maybe_unused]] const unsigned version)
 namespace model {
 
 template <typename Archive>
-void serialize(Archive& ar, FoundObject& obj, [[maybe_unused]] const unsigned version) {
+void serialize(Archive& ar, Item& obj, [[maybe_unused]] const unsigned version) {
     ar&(*obj.id);
     ar&(obj.type);
 }
@@ -32,19 +32,18 @@ namespace serialization {
 
 // DogRepr (DogRepresentation) - сериализованное представление класса Dog
 class DogRepr {
-public:
+   public:
     DogRepr() = default;
 
     explicit DogRepr(const model::Dog& dog)
-        : id_(dog.GetId())
-        , name_(dog.GetName())
-        , pos_(dog.GetPosition())
-        , bag_capacity_(dog.GetBagCapacity())
-        , speed_(dog.GetSpeed())
-        , direction_(dog.GetDirection())
-        , score_(dog.GetScore())
-        , bag_content_(dog.GetBagContent()) {
-    }
+        : id_(dog.GetId()),
+          name_(dog.GetName()),
+          pos_(dog.GetPosition()),
+          bag_capacity_(dog.GetBagCapacity()),
+          speed_(dog.GetSpeed()),
+          direction_(dog.GetDirection()),
+          score_(dog.GetScore()),
+          bag_content_(dog.GetBagContent()) {}
 
     [[nodiscard]] model::Dog Restore() const {
         model::Dog dog{id_, name_, pos_, bag_capacity_};
@@ -61,17 +60,17 @@ public:
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
-        ar&* id_;
+        //ar&* id_;
         ar& name_;
-        ar& pos_;
-        ar& bag_capacity_;
-        ar& speed_;
-        ar& direction_;
-        ar& score_;
-        ar& bag_content_;
+        //ar& pos_;
+        // ar& bag_capacity_;
+        // ar& speed_;
+        // ar& direction_;
+        // ar& score_;
+        // ar& bag_content_;
     }
 
-private:
+   private:
     model::Dog::Id id_ = model::Dog::Id{0u};
     std::string name_;
     geom::Point2D pos_;

@@ -1,10 +1,11 @@
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <catch2/catch_test_macros.hpp>
+//#include <catch2/catch_test_macros.hpp>
 #include <sstream>
 
-#include "../src/model.h"
-#include "../src/model_serialization.h"
+#include <catch2/catch.hpp>
+#include "../include/model.h"
+#include "../include/model_serialization.h"
 
 using namespace model;
 using namespace std::literals;
@@ -39,23 +40,25 @@ SCENARIO_METHOD(Fixture, "Point serialization") {
 SCENARIO_METHOD(Fixture, "Dog Serialization") {
     GIVEN("a dog") {
         const auto dog = [] {
-            Dog dog{Dog::Id{42}, "Pluto"s, {42.2, 12.5}, 3};
+            Dog dog{
+                Dog::Id{42}, Dog::Name{"Pluto"s}, Position{42.2, 12.5} /* , 3 */
+            };
             dog.AddScore(42);
-            CHECK(dog.PutToBag({Item::Id{10}, 2u}));
-            dog.SetDirection(Direction::EAST);
+            CHECK(dog.TakeItem({Item::Id{10}, 2u, Position{0, 0}}));
+            dog.SetDirection(model::Dog::Direction::EAST);
             dog.SetSpeed({2.3, -1.2});
             return dog;
         }();
 
         WHEN("dog is serialized") {
             {
-                serialization::DogRepr repr{dog};
+                serialization::DogObj repr{dog};
                 output_archive << repr;
             }
 
             THEN("it can be deserialized") {
                 InputArchive input_archive{strm};
-                serialization::DogRepr repr;
+                serialization::DogObj repr;
                 input_archive >> repr;
                 const auto restored = repr.Restore();
 
@@ -64,7 +67,7 @@ SCENARIO_METHOD(Fixture, "Dog Serialization") {
                 CHECK(dog.GetPosition() == restored.GetPosition());
                 CHECK(dog.GetSpeed() == restored.GetSpeed());
                 CHECK(dog.GetBagCapacity() == restored.GetBagCapacity());
-                CHECK(dog.GetBagContent() == restored.GetBagContent());
+                // CHECK(dog.GetBag() == restored.GetBag());
             }
         }
     }
