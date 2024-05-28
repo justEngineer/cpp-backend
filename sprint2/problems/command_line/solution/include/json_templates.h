@@ -4,7 +4,7 @@
 using namespace std::literals;
 namespace model {
 
-namespace json_config {
+namespace json_obj_game {
 constexpr static char MAPS[] = "maps";
 constexpr static char DEFAULT_DOG_SPEED[] = "defaultDogSpeed";
 namespace map {
@@ -34,7 +34,7 @@ constexpr static char OFFSET_X[] = "offsetX";
 constexpr static char OFFSET_Y[] = "offsetY";
 }  // namespace office
 }  // namespace map
-}  // namespace json_config
+}  // namespace json_obj_game
 
 namespace json_error {
 constexpr static char CODE[] = "code";

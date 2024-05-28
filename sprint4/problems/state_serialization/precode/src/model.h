@@ -24,13 +24,13 @@ struct Size {
 using LostObjectType = unsigned;
 using Score = unsigned;
 
-struct FoundObject {
-    using Id = util::Tagged<uint32_t, FoundObject>;
+struct Item {
+    using Id = util::Tagged<uint32_t, Item>;
 
     Id id{0u};
     LostObjectType type{0u};
 
-    [[nodiscard]] auto operator<=>(const FoundObject&) const = default;
+    [[nodiscard]] auto operator<=>(const Item&) const = default;
 };
 
 enum class Direction {
@@ -41,59 +41,36 @@ enum class Direction {
 };
 
 class Dog {
-public:
+   public:
     using Id = util::Tagged<uint32_t, Dog>;
-    using BagContent = std::vector<FoundObject>;
+    using BagContent = std::vector<Item>;
 
     Dog(Id id, std::string name, geom::Point2D pos, size_t bag_cap)
-        : id_(std::move(id))
-        , name_(std::move(name))
-        , position_(pos)
-        , bag_cap_(bag_cap) {
+        : id_(std::move(id)), name_(std::move(name)), position_(pos), bag_cap_(bag_cap) {
         bag_.reserve(bag_cap);
     }
 
-    const Id& GetId() const noexcept {
-        return id_;
-    }
+    const Id& GetId() const noexcept { return id_; }
 
-    const std::string GetName() const noexcept {
-        return name_;
-    }
+    const std::string GetName() const noexcept { return name_; }
 
-    const geom::Point2D& GetPosition() const noexcept {
-        return position_;
-    }
+    const geom::Point2D& GetPosition() const noexcept { return position_; }
 
-    const geom::Vec2D& GetSpeed() const noexcept {
-        return speed_;
-    }
+    const geom::Vec2D& GetSpeed() const noexcept { return speed_; }
 
-    void SetSpeed(geom::Vec2D speed) noexcept {
-        speed_ = speed;
-    }
+    void SetSpeed(geom::Vec2D speed) noexcept { speed_ = speed; }
 
-    void SetPosition(geom::Point2D position) noexcept {
-        position_ = position;
-    }
+    void SetPosition(geom::Point2D position) noexcept { position_ = position; }
 
-    void SetDirection(Direction direction) noexcept {
-        direction_ = direction;
-    }
+    void SetDirection(Direction direction) noexcept { direction_ = direction; }
 
-    size_t GetBagCapacity() const noexcept {
-        return bag_cap_;
-    }
+    size_t GetBagCapacity() const noexcept { return bag_cap_; }
 
-    Direction GetDirection() const noexcept {
-        return direction_;
-    }
+    Direction GetDirection() const noexcept { return direction_; }
 
-    Score GetScore() const noexcept {
-        return score_;
-    }
+    Score GetScore() const noexcept { return score_; }
 
-    [[nodiscard]] bool PutToBag(FoundObject item) {
+    [[nodiscard]] bool PutToBag(Item item) {
         if (IsBagFull()) {
             return false;
         }
@@ -109,25 +86,19 @@ public:
         return res;
     }
 
-    bool IsBagFull() const noexcept {
-        return bag_.size() >= bag_cap_;
-    }
+    bool IsBagFull() const noexcept { return bag_.size() >= bag_cap_; }
 
-    const BagContent& GetBagContent() const noexcept {
-        return bag_;
-    }
+    const BagContent& GetBagContent() const noexcept { return bag_; }
 
-    void AddScore(Score score) noexcept {
-        score_ += score;
-    }
+    void AddScore(Score score) noexcept { score_ += score; }
 
-private:
+   private:
     Id id_;
     std::string name_;
     geom::Point2D position_;
     geom::Vec2D speed_;
     Direction direction_{Direction::NORTH};
-    std::vector<FoundObject> bag_;
+    std::vector<Item> bag_;
     size_t bag_cap_;
     Score score_{};
 };

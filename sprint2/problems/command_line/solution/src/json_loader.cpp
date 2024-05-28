@@ -51,9 +51,9 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::ifstream input_file_stream(json_path);
     std::string raw_input(std::istreambuf_iterator<char>(input_file_stream), {});
     auto obj = json::parse(raw_input).as_object();
-    auto defaultDogSpeed_ = value_to<double>(obj.at(std::string(model::json_config::DEFAULT_DOG_SPEED)));
+    auto defaultDogSpeed_ = value_to<double>(obj.at(std::string(model::json_obj_game::DEFAULT_DOG_SPEED)));
     model::Game game(defaultDogSpeed_);
-    auto maps = value_to<std::vector<model::Map>>(obj.at({model::json_config::MAPS}));
+    auto maps = value_to<std::vector<model::Map>>(obj.at({model::json_obj_game::MAPS}));
     for (auto& map : maps) {
         game.AddMap(std::move(map));
     }
