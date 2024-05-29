@@ -40,7 +40,7 @@ View::View(menu::Menu& menu, app::UseCases& use_cases, std::istream& input, std:
     , output_{output} {
     menu_.AddAction(  //
         "AddAuthor"s, "name"s, "Adds author"s, std::bind(&View::AddAuthor, this, ph::_1)
-        // либо
+        // пїЅпїЅпїЅпїЅ
         // [this](auto& cmd_input) { return AddAuthor(cmd_input); }
     );
     menu_.AddAction("AddBook"s, "<pub year> <title>"s, "Adds book"s,
@@ -56,6 +56,9 @@ bool View::AddAuthor(std::istream& cmd_input) const {
         std::string name;
         std::getline(cmd_input, name);
         boost::algorithm::trim(name);
+        if (name.empty()) {
+            throw std::runtime_error("Empty name");
+        }
         use_cases_.AddAuthor(std::move(name));
     } catch (const std::exception&) {
         output_ << "Failed to add author"sv << std::endl;
@@ -66,7 +69,7 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 bool View::AddBook(std::istream& cmd_input) const {
     try {
         if (auto params = GetBookParams(cmd_input)) {
-            assert(!"TODO: implement book adding");
+            use_cases_.AddBook(params->author_id, params->title, params->publication_year);
         }
     } catch (const std::exception&) {
         output_ << "Failed to add book"sv << std::endl;
@@ -140,20 +143,30 @@ std::optional<std::string> View::SelectAuthor() const {
 
 std::vector<detail::AuthorInfo> View::GetAuthors() const {
     std::vector<detail::AuthorInfo> dst_autors;
-    assert(!"TODO: implement GetAuthors()");
+    auto autors = use_cases_.GetAllAuthors();
+    for (auto author : autors) {
+        dst_autors.emplace_back(detail::AuthorInfo{author.GetId().ToString(), author.GetName()});
+    }
     return dst_autors;
 }
 
 std::vector<detail::BookInfo> View::GetBooks() const {
-    std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetBooks()");
-    return books;
+    std::vector<detail::BookInfo> dst_books;
+    auto books = use_cases_.GetAllBooks();
+    for (auto book : books) {
+        dst_books.emplace_back(detail::BookInfo{book.GetTitle(), *book.GetYear()});
+    }    
+    return dst_books;
 }
 
 std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id) const {
-    std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetAuthorBooks()");
-    return books;
+    std::vector<detail::BookInfo> dst_books;
+    auto books_ = use_cases_.GetAuthorBooks(author_id);
+    for (auto book : books_) {
+        dst_books.emplace_back(detail::BookInfo{book.GetTitle(), *book.GetYear()});
+    }
+    
+    return dst_books;
 }
 
 }  // namespace ui

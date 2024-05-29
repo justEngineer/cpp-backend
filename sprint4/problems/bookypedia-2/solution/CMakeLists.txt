@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 
 project(bookypedia CXX)
 set(CMAKE_CXX_STANDARD 20)
-
+set(CONAN_DISABLE_CHECK_COMPILER TRUE CACHE BOOL "" FORCE )
 include(${CMAKE_BINARY_DIR}/conanbuildinfo_multi.cmake)
 conan_basic_setup(TARGETS)
 
@@ -20,9 +20,6 @@ add_library(libbookypedia STATIC
 	src/domain/author.cpp
 	src/domain/author.h
 	src/domain/author_fwd.h
-	src/domain/book.cpp
-	src/domain/book.h
-	src/domain/book_fwd.h
 	src/util/tagged.h
 	src/util/tagged_uuid.cpp
 	src/util/tagged_uuid.h

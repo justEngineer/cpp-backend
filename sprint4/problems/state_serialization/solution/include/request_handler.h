@@ -77,9 +77,9 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
                 api_strand, std::chrono::milliseconds(config.timer_period),
                 [this, time_delta = config.timer_period](std::chrono::milliseconds delta) {
                     game_.ChangeTime(time_delta);
-                    if (serializer_) {
-                        serializer_->SerializeGameStateToFile();
-                    }
+                    // if (serializer_) {
+                    //     serializer_->SerializeGameStateToFile();
+                    // }
                 });
             timer_->Start();
         }

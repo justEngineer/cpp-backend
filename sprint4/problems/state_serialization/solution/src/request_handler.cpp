@@ -94,9 +94,9 @@ StringResponse RequestHandler::AddNewPlayer(const http_server::StringRequest& re
             return ReportServerError(model::error_code::MAP_NOT_FOUND, "Map not found"sv, req, http::status::not_found,
                                      HTTPMethods::ADD_PLAYER, {http::field::cache_control, "no-cache"sv});
         }
-        if (serializer_) {
-            serializer_->SerializeGameStateToFile();
-        }
+        // if (serializer_) {
+        //     serializer_->SerializeGameStateToFile();
+        // }
         auto body = boost::json::serialize(json::value_from(*player));
         auto response =
             http_server::MakeStringResponse(http::status::ok, std::move(body), req, http_server::ContentType::JSON,
@@ -247,9 +247,9 @@ StringResponse RequestHandler::ChangeTime(const http_server::StringRequest& req)
                                      {http::field::cache_control, "no-cache"sv});
         } else {
             game_.ChangeTime(time_delta);
-            if (serializer_) {
-                serializer_->SerializeGameStateToFile();
-            }
+            // if (serializer_) {
+            //     serializer_->SerializeGameStateToFile();
+            // }
             auto body = boost::json::serialize(json::value_from(model::EmptyObject()));
             return http_server::MakeStringResponse(http::status::ok, body, req, http_server::ContentType::JSON,
                                                    HTTPMethods::ADD_PLAYER, {http::field::cache_control, "no-cache"sv});

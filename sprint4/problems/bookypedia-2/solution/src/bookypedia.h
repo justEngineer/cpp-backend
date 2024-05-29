@@ -13,12 +13,12 @@ struct AppConfig {
 class Application {
 public:
     explicit Application(const AppConfig& config);
-
+    void DeleteTables();
     void Run();
 
 private:
     postgres::Database db_;
-    app::UseCasesImpl use_cases_{db_.GetAuthors(), db_.GetBooks()};
+    app::UseCasesImpl use_cases_{db_.GetAuthors()};
 };
 
 }  // namespace bookypedia

@@ -197,6 +197,7 @@ class GameSessionObj {
 class GameSerializer {
    public:
     using Clock = std::chrono::steady_clock;
+    using milliseconds = std::chrono::milliseconds;
     using Strand = net::strand<net::io_context::executor_type>;
     GameSerializer(Strand& api_strand, model::Game& game, const app::Config& config)
         : game_(game), path_(config.state_path), is_state_path_exists_(config.is_state_path_exists) {
@@ -207,7 +208,6 @@ class GameSerializer {
             if (config.is_save_state_period_exists) {
                 is_store_period_exists_ = true;
                 store_period_ = std::chrono::milliseconds(config.save_state_period);
-                last_tick_ = Clock::now();
                 // timer_ = std::make_shared<util::Ticker>(
                 //     api_strand, std::chrono::milliseconds(config.save_state_period),
                 //     [this](std::chrono::milliseconds delta) { SerializeGameStateToFile(); });
@@ -220,12 +220,13 @@ class GameSerializer {
             SerializeGameStateToFile();
         }
     }
-    void SerializeGameStateOnTimer() {
+    void SerializeGameStateOnTimer(milliseconds deltaInMilliseconds) {
         if (!is_store_period_exists_) {
             return;
         }
-        if (Clock::now() - last_tick_ >= store_period_) {
-            last_tick_ = Clock::now();
+        current_time_ += deltaInMilliseconds;
+        if (current_time_ >= store_period_) {
+            current_time_ = {};
             SerializeGameStateToFile();
         }
     }
@@ -241,20 +242,6 @@ class GameSerializer {
         for (const auto& session : game_.GetSessions()) {
             // 2. сессия
             ar << GameSessionObj(*session);
-            // const auto& players = session->GetAllPlayers();
-            // // 3. кол-во игроков
-            // ar << players.size();
-            // for (const auto& player : players) {
-            //     // 4. игрок
-            //     ar << PlayerObj(player);
-            // }
-            // const auto& items = session->GetAllItems();
-            // // 5. кол-во предмет
-            // ar << items.size();
-            // for (const auto& [_, item] : items) {
-            //     // 6. предмет
-            //     ar << ItemObj(item);
-            // }
         }
         std::rename(tmp_file.c_str(), path_.c_str());
     }
@@ -289,8 +276,8 @@ class GameSerializer {
     std::mutex mtx_;
     const bool is_state_path_exists_{false};
     bool is_store_period_exists_{false};
-    std::chrono::milliseconds store_period_;
-    std::chrono::steady_clock::time_point last_tick_;
+    milliseconds store_period_;
+    milliseconds current_time_;
 };
 
 }  // namespace serialization

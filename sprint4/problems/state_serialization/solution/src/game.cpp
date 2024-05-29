@@ -178,7 +178,7 @@ bool Game::FindAndMovePlayersDog(const std::string& token, std::string_view comm
 
 void Game::ChangeTime(uint64_t deltaInMilliseconds) {
     if (serializer_) {
-        serializer_->SerializeGameStateOnTimer();
+        serializer_->SerializeGameStateOnTimer(std::chrono::milliseconds(deltaInMilliseconds));
     }
     for (auto& session : sessions_) {
         session->ChangeTime(deltaInMilliseconds);
