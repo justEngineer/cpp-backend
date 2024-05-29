@@ -7,6 +7,9 @@
 #include "model.h"
 #include "tagged.h"
 
+namespace serialization {
+class GameSerializer;
+}
 namespace model {
 
 class GameSession {
@@ -65,6 +68,7 @@ class Game {
     const std::pair<const std::vector<Player>*, const ItemsHash*> GetPlayersAndItems(const std::string& token);
     bool FindAndMovePlayersDog(const std::string& token, std::string_view command);
     void ChangeTime(uint64_t deltaInMilliseconds);
+    void SetSerializer(serialization::GameSerializer* serializer) { serializer_ = serializer; }
 
    private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
@@ -79,6 +83,7 @@ class Game {
     double defaultDogSpeed_{0.0};
     loot_gen::LootGenerator loot_generator_;
     uint32_t default_bag_capacity_{0};
+    serialization::GameSerializer* serializer_;
 };
 
 }  // namespace model

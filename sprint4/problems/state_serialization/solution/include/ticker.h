@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/asio/strand.hpp>
 #include <chrono>
 #include <compare>
@@ -46,7 +47,9 @@ class Ticker : public std::enable_shared_from_this<Ticker> {
             last_tick_ = this_tick;
             try {
                 handler_(delta);
-            } catch (...) {}
+            } catch (std::exception& e) {
+                auto msg = e.what();
+            }
             ScheduleTick();
         }
     }

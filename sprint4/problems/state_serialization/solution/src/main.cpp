@@ -53,25 +53,9 @@ int main(int argc, const char* argv[]) {
         // strand для выполнения запросов к API
         auto api_strand = net::make_strand(ioc);
         std::unique_ptr<serialization::GameSerializer> serializer_ptr;
-        signals::scoped_connection conn;
         if (config->is_state_path_exists) {
             serializer_ptr = std::make_unique<serialization::GameSerializer>(api_strand, game, config.value());
-
-            if (config->is_save_state_period_exists) {
-                // Лямбда-функция будет вызываться всякий раз, когда Application будет слать сигнал tick
-                // Функция перестанет вызываться после разрушения conn.
-                // TODO: убрать args из лямбды
-                // conn = app.DoOnTick([std::chrono::milliseconds total = 0ms, &serializer_ptr,
-                //                      &config](std::chrono::milliseconds delta) mutable {
-                //     // TODO: Здесь сохраняем состояние игры в файл
-                //     serializer_ptr->SerializeGameStateToFile();
-                //     total += delta;
-                //     std::cout << "Tick! Delta: " << delta.count() << "ms, Total: " << total.count() << "ms"
-                //               << std::endl;
-                // });
-            }
         }
-
         // 3. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
         net::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number) {
@@ -82,8 +66,9 @@ int main(int argc, const char* argv[]) {
         });
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
         // Создаём обработчик запросов в куче, управляемый shared_ptr
-        auto handler = std::make_shared<http_handler::RequestHandler>(api_strand, game, config.value());
-
+        auto handler =
+            std::make_shared<http_handler::RequestHandler>(api_strand, game, config.value(), serializer_ptr.get());
+        game.SetSerializer(serializer_ptr.get());
         http_handler::LoggingRequestHandler logging_handler(*handler);
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         auto address = net::ip::make_address("0.0.0.0");

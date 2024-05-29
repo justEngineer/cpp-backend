@@ -37,7 +37,9 @@ COPY --from=build /app/build/bin/game_server /app/
 COPY ./data /app/data
 COPY ./static /app/static
 
-RUN mkdir /tmp/volume/ && chmod 777 /tmp/volume
+RUN mkdir /tmp/volume/
+RUN chmod 777 /tmp/volume
+#RUN chmod 777 /app/
 
 #ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/app/static"]
-ENTRYPOINT ["/app/game_server", "--config-file", "/app/data/config.json", "--www-root", "/app/static", "--state-file", "/tmp/volume/state.save", "--save-state-period", "100"]
+ENTRYPOINT ["/app/game_server", "--config-file", "/app/data/config.json", "--www-root", "/app/static", "--state-file", "/tmp/volume/state", "--save-state-period", "100"]

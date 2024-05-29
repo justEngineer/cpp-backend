@@ -37,8 +37,11 @@ target_link_libraries(game_server PRIVATE Threads::Threads CONAN_PKG::boost)
 
 add_executable(game_server_test
 	src/loot_generator.cpp
+	src/model.cpp
 	tests/loot_generator_tests.cpp
 	tests/state-serialization-tests.cpp
 )
+
+target_include_directories(game_server_test PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" PRIVATE CONAN_PKG::boost)
 
 target_link_libraries(game_server_test PRIVATE CONAN_PKG::boost CONAN_PKG::catch2)

@@ -3,6 +3,7 @@
 #include "game.h"
 #include "http_server.h"
 #include "model.h"
+#include "model_serialization.h"
 #include "ticker.h"
 
 #define BOOST_BEAST_USE_STD_STRING_VIEW
@@ -44,8 +45,12 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
     using Strand = net::strand<net::io_context::executor_type>;
 
    public:
-    explicit RequestHandler(Strand api_strand, model::Game& game, app::Config& config)
-        : game_{game}, path_to_static_folder_{config.static_dir_path}, api_strand_{api_strand} {
+    explicit RequestHandler(Strand& api_strand, model::Game& game, app::Config& config,
+                            serialization::GameSerializer* serializer)
+        : game_{game},
+          path_to_static_folder_{config.static_dir_path},
+          api_strand_{api_strand},
+          serializer_{serializer} {
         using namespace std::literals;
         supported_file_types[".htm"s] = ContentType::TEXT_HTML;
         supported_file_types[".html"s] = ContentType::TEXT_HTML;
@@ -68,10 +73,14 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
         supported_file_types[".mp3"s] = ContentType::AUDIO_MPEG;
 
         if (config.timer_period_exists) {
-            timer_ =
-                std::make_shared<util::Ticker>(api_strand, std::chrono::milliseconds(config.timer_period),
-                                               [this, time_delta = config.timer_period](
-                                                   std::chrono::milliseconds delta) { game_.ChangeTime(time_delta); });
+            timer_ = std::make_shared<util::Ticker>(
+                api_strand, std::chrono::milliseconds(config.timer_period),
+                [this, time_delta = config.timer_period](std::chrono::milliseconds delta) {
+                    game_.ChangeTime(time_delta);
+                    if (serializer_) {
+                        serializer_->SerializeGameStateToFile();
+                    }
+                });
             timer_->Start();
         }
     }
@@ -126,6 +135,7 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
     std::unordered_map<std::string, std::string> supported_file_types;
     Strand api_strand_;
     std::shared_ptr<util::Ticker> timer_;
+    serialization::GameSerializer* serializer_;
 };
 
 }  // namespace http_handler

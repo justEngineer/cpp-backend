@@ -3,6 +3,7 @@
 #include <cmath>
 #include <ranges>
 #include <stdexcept>
+#include "model_serialization.h"
 #include "player_tokens.h"
 #include "request_handler.h"
 
@@ -176,6 +177,9 @@ bool Game::FindAndMovePlayersDog(const std::string& token, std::string_view comm
 }
 
 void Game::ChangeTime(uint64_t deltaInMilliseconds) {
+    if (serializer_) {
+        serializer_->SerializeGameStateOnTimer();
+    }
     for (auto& session : sessions_) {
         session->ChangeTime(deltaInMilliseconds);
     }
